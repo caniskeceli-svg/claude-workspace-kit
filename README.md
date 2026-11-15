@@ -13,7 +13,7 @@ engelleyip karantinaya yönlendiren bir PreToolUse hook'u.
 | `silme_kilidi.py` | `.claude/hooks/silme_kilidi.py` |
 | `settings.fragment.json` | `.claude/settings.json`'a merge edilir |
 | `merge_kurulum.py` | `install.sh`'in kullandığı yardımcı (kopyalanmaz) |
-| `test_silme_kilidi.py` | Hook'un karar mantığını 40 senaryoyla doğrular (gerçek silme yapmaz) |
+| `test_silme_kilidi.py` | Hook'un karar mantığını 51 senaryoyla doğrular (gerçek silme yapmaz; kendi geçici git deposunu kurup siler, makineye özel bir yola bağımlı değil) |
 
 ## Kurulum (yeni/mevcut bir repoya)
 
@@ -30,6 +30,7 @@ cd claude-workspace-kit
 - `denetci.md` ve `silme_kilidi.py`'yi kopyalar.
 - `CLAUDE.md`'nin başına genel kurallar bölümünü ekler — repoya özel içerik **asla silinmez**; script tekrar çalıştırılırsa aynı bölümü yerinde günceller (idempotent, marker: `<!-- claude-workspace-kit:start/end -->`).
 - `.claude/settings.json`'a hook girdisini **merge** eder; var olan başka hook'lara dokunmaz.
+- Kurulumun sonunda `test_silme_kilidi.py`'yi hedefe **az önce kopyalanan** `silme_kilidi.py`'ye karşı otomatik çalıştırır (kendi geçici git deposunu kurup siler, hedef repoya dokunmaz) ve 51/51 sonucunu ekrana yazar — kurulumun gerçekten çalıştığını anında doğrular.
 
 Tek bağımlılık: `python3` (hook ve merge script'i için) ve `bash`.
 
@@ -60,9 +61,19 @@ Ayrıştırma başarısız olursa ya da belirsizse **fail-closed**: engeller.
 python3 test_silme_kilidi.py
 ```
 
-40 senaryoyu (engellenmesi ve geçmesi gerekenler) doğrudan karar
-fonksiyonuna (`degerlendir()`) sorar — gerçek dosya silmez. Gerçek hook
-protokolünü (stdin JSON → exit code) doğrulamak için:
+Repo bağımsızdır: sabit bir makine yoluna bağlı değil, her çalıştırmada
+kendi geçici git deposunu (`git init`, birkaç takipli/takipsiz dosya, bir
+`.env`) `/tmp` altında kurar, 51 senaryoyu (engellenmesi ve geçmesi
+gerekenler) doğrudan karar fonksiyonuna (`degerlendir()`) sorar, sonunda
+(başarılı/başarısız fark etmeksizin) geçici depoyu siler. `install.sh` bunu
+kurulumun son adımı olarak zaten otomatik çalıştırır; elle de bir hedef
+repoya kurulmuş kopyayı doğrulamak için dizin argümanı verilebilir:
+
+```bash
+python3 test_silme_kilidi.py /path/to/hedef-repo/.claude/hooks
+```
+
+Gerçek hook protokolünü (stdin JSON → exit code) doğrulamak için:
 
 ```bash
 echo '{"tool_name":"Bash","tool_input":{"command":"git push --force origin main"}}' \

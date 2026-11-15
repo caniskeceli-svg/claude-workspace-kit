@@ -13,6 +13,9 @@
 #   - CLAUDE.md'ye genel kurallar bolumunu EKLER (repoya-ozel icerigi SILMEZ,
 #     tekrar calistirilirsa ayni bolumu yerinde gunceller - idempotent)
 #   - .claude/settings.json'a hook girdisini MERGE eder (var olan hook'lara DOKUNMAZ)
+#   - Kurulumdan sonra test_silme_kilidi.py'yi HEDEFE kurulan kopyaya karsi
+#     calistirir (kendi gecici git deposunu olusturup siler, hedef repoya
+#     dokunmaz) ve 51/51 sonucunu yazdirir.
 #
 # Hicbir sey SILMEZ, hicbir repoya-ozel dosyanin uzerine kortusuz yazmaz.
 set -euo pipefail
@@ -39,6 +42,16 @@ chmod +x "$HEDEF/.claude/hooks/silme_kilidi.py"
 echo "OK  .claude/hooks/silme_kilidi.py"
 
 python3 "$KIT_KOK/merge_kurulum.py" "$HEDEF"
+
+echo
+echo "Kurulum sonrasi dogrulama testleri (hedefe kurulan kopyaya karsi, kendi gecici git deposunu kurup siler)..."
+if python3 "$KIT_KOK/test_silme_kilidi.py" "$HEDEF/.claude/hooks"; then
+  echo
+  echo "Testler basarili."
+else
+  echo
+  echo "UYARI: dogrulama testleri BASARISIZ oldu (yukaridaki tabloda FARK satirlarina bak) - kurulum yine de yapildi, ama hook'u kullanmadan once bunu incele." >&2
+fi
 
 echo
 echo "Kurulum tamamlandi. Dogrulamak icin:"
